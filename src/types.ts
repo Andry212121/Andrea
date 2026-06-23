@@ -27,4 +27,22 @@ export interface Goal {
   completed: boolean;
 }
 
+export interface BusinessPlan {
+  id: string;
+  businessId: string;
+  problem: string;
+  customers: string;
+  product: string;
+  price: string;
+  startupCosts: string;
+  marketing: string;
+  monthGoal: string;
+  createdAt: string;
+}
+
+export interface Achievement {
+  id: string;
+  unlockedAt: string;
+}
+
 export type Page = 'dashboard' | 'businesses' | 'money' | 'goals' | 'learn';

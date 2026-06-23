@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Page } from './types';
 import { useAppStore } from './store';
 import Nav from './components/Nav';
+import AchievementToast from './components/AchievementToast';
 import Dashboard from './pages/Dashboard';
 import Businesses from './pages/Businesses';
 import Money from './pages/Money';
@@ -15,21 +16,30 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-orange-50">
+      <AchievementToast
+        achievementId={store.newAchievement}
+        onDismiss={store.dismissAchievement}
+      />
+
       {page === 'dashboard' && (
         <Dashboard
           kidName={store.kidName}
           setKidName={store.setKidName}
           totalBalance={store.totalBalance}
+          totalIncome={store.totalIncome}
           businesses={store.businesses}
           goals={store.goals}
+          unlockedAchievements={store.unlockedAchievements}
           onNavigate={(p) => setPage(p as Page)}
         />
       )}
       {page === 'businesses' && (
         <Businesses
           businesses={store.businesses}
+          businessPlans={store.businessPlans}
           addBusiness={store.addBusiness}
           deleteBusiness={store.deleteBusiness}
+          saveBusinessPlan={store.saveBusinessPlan}
         />
       )}
       {page === 'money' && (
@@ -50,6 +60,7 @@ export default function App() {
         />
       )}
       {page === 'learn' && <Learn />}
+
       <Nav current={page} onNavigate={setPage} />
     </div>
   );
