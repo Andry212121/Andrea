@@ -84,12 +84,12 @@ export default function Dashboard({
         <div className="bg-white rounded-3xl p-5 mb-4 shadow-md border-2 border-green-100">
           <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Balance</p>
           <p className={`text-4xl font-black mt-1 ${totalBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            ${totalBalance.toFixed(2)}
+            £{totalBalance.toFixed(2)}
           </p>
           <div className="flex gap-4 mt-2">
             <div>
               <p className="text-xs text-gray-400">Total Earned</p>
-              <p className="text-sm font-black text-green-500">${totalIncome.toFixed(2)}</p>
+              <p className="text-sm font-black text-green-500">£{totalIncome.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400">Businesses</p>
@@ -162,7 +162,7 @@ export default function Dashboard({
                       <span className="text-2xl">{goal.emoji}</span>
                       <div className="flex-1">
                         <p className="font-bold text-gray-800">{goal.title}</p>
-                        <p className="text-xs text-gray-500">${goal.currentAmount.toFixed(2)} / ${goal.targetAmount.toFixed(2)}</p>
+                        <p className="text-xs text-gray-500">£{goal.currentAmount.toFixed(2)} / £{goal.targetAmount.toFixed(2)}</p>
                       </div>
                       <span className="text-sm font-bold text-indigo-600">{Math.round(pct)}%</span>
                     </div>
@@ -194,7 +194,7 @@ export default function Dashboard({
                     <p className="text-xs text-gray-500">{b.description}</p>
                   </div>
                   <p className={`font-black text-lg ${b.totalEarned >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    ${b.totalEarned.toFixed(2)}
+                    £{b.totalEarned.toFixed(2)}
                   </p>
                 </div>
               ))}

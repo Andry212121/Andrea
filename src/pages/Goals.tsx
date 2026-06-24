@@ -57,7 +57,7 @@ export default function Goals({ goals, addGoal, contributeToGoal, deleteGoal, to
       <div className="bg-blue-50 border-2 border-blue-100 rounded-2xl p-3 mb-4 flex items-center gap-2">
         <span className="text-2xl">💰</span>
         <p className="text-blue-700 font-semibold text-sm">
-          Available balance: <span className="font-black text-blue-800">${Math.max(totalBalance, 0).toFixed(2)}</span>
+          Available balance: <span className="font-black text-blue-800">£{Math.max(totalBalance, 0).toFixed(2)}</span>
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export default function Goals({ goals, addGoal, contributeToGoal, deleteGoal, to
             placeholder="e.g. New bicycle, Video game..."
           />
 
-          <label className="block text-sm font-bold text-gray-600 mb-1">Target Amount ($) *</label>
+          <label className="block text-sm font-bold text-gray-600 mb-1">Target Amount (£) *</label>
           <input
             type="number"
             min="0"
@@ -142,8 +142,8 @@ export default function Goals({ goals, addGoal, contributeToGoal, deleteGoal, to
 
                   <div className="mb-2">
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="font-semibold text-gray-600">${goal.currentAmount.toFixed(2)} saved</span>
-                      <span className="font-bold text-purple-600">${goal.targetAmount.toFixed(2)} goal</span>
+                      <span className="font-semibold text-gray-600">£{goal.currentAmount.toFixed(2)} saved</span>
+                      <span className="font-bold text-purple-600">£{goal.targetAmount.toFixed(2)} goal</span>
                     </div>
                     <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -204,7 +204,7 @@ export default function Goals({ goals, addGoal, contributeToGoal, deleteGoal, to
                 <span className="text-3xl">{goal.emoji}</span>
                 <div className="flex-1">
                   <h3 className="font-black text-green-800">{goal.title}</h3>
-                  <p className="text-green-600 text-sm">✅ ${goal.targetAmount.toFixed(2)} achieved!</p>
+                  <p className="text-green-600 text-sm">✅ £{goal.targetAmount.toFixed(2)} achieved!</p>
                 </div>
                 <button onClick={() => deleteGoal(goal.id)} className="text-xs text-gray-400 hover:text-red-500">✕</button>
               </div>

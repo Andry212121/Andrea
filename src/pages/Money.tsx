@@ -78,16 +78,16 @@ export default function Money({ businesses, transactions, addTransaction, totalB
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-green-100 rounded-2xl p-3 text-center">
           <p className="text-xs text-green-700 font-bold uppercase">Earned</p>
-          <p className="text-lg font-black text-green-600">${totalIncome.toFixed(2)}</p>
+          <p className="text-lg font-black text-green-600">£{totalIncome.toFixed(2)}</p>
         </div>
         <div className="bg-red-100 rounded-2xl p-3 text-center">
           <p className="text-xs text-red-700 font-bold uppercase">Spent</p>
-          <p className="text-lg font-black text-red-500">${totalExpenses.toFixed(2)}</p>
+          <p className="text-lg font-black text-red-500">£{totalExpenses.toFixed(2)}</p>
         </div>
         <div className={`${totalBalance >= 0 ? 'bg-blue-100' : 'bg-red-50'} rounded-2xl p-3 text-center`}>
           <p className="text-xs text-blue-700 font-bold uppercase">Balance</p>
           <p className={`text-lg font-black ${totalBalance >= 0 ? 'text-blue-600' : 'text-red-500'}`}>
-            ${totalBalance.toFixed(2)}
+            £{totalBalance.toFixed(2)}
           </p>
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function Money({ businesses, transactions, addTransaction, totalB
             ))}
           </select>
 
-          <label className="block text-sm font-bold text-gray-600 mb-1">Amount ($)</label>
+          <label className="block text-sm font-bold text-gray-600 mb-1">Amount (£)</label>
           <input
             type="number" min="0" step="0.01" value={amount}
             onChange={e => setAmount(e.target.value)}
@@ -185,7 +185,7 @@ export default function Money({ businesses, transactions, addTransaction, totalB
                 <BarChart data={monthlyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => `$${Number(v).toFixed(2)}`} />
+                  <Tooltip formatter={(v) => `£${Number(v).toFixed(2)}`} />
                   <Legend />
                   <Bar dataKey="income" name="Income" fill="#4ade80" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="expenses" name="Expenses" fill="#f87171" radius={[4, 4, 0, 0]} />
@@ -199,9 +199,9 @@ export default function Money({ businesses, transactions, addTransaction, totalB
               <h3 className="font-black text-gray-700 mb-3">Profit by Business</h3>
               <ResponsiveContainer width="100%" height={Math.max(160, bizBreakdown.length * 50)}>
                 <BarChart data={bizBreakdown} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `$${v}`} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={v => `£${v}`} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
-                  <Tooltip formatter={(v) => `$${Number(v).toFixed(2)}`} />
+                  <Tooltip formatter={(v) => `£${Number(v).toFixed(2)}`} />
                   <Bar dataKey="profit" name="Profit" fill="#a78bfa" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -216,9 +216,9 @@ export default function Money({ businesses, transactions, addTransaction, totalB
                 <div key={b.name} className="flex items-center gap-2">
                   <p className="text-sm text-gray-700 flex-1 truncate">{b.name}</p>
                   <div className="flex gap-3 text-sm">
-                    <span className="text-green-600 font-bold">+${b.income.toFixed(2)}</span>
+                    <span className="text-green-600 font-bold">+£{b.income.toFixed(2)}</span>
                     <span className="text-red-500">-${b.expenses.toFixed(2)}</span>
-                    <span className={`font-black ${b.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>${b.profit.toFixed(2)}</span>
+                    <span className={`font-black ${b.profit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>£{b.profit.toFixed(2)}</span>
                   </div>
                 </div>
               ))}
@@ -248,7 +248,7 @@ export default function Money({ businesses, transactions, addTransaction, totalB
                     <p className="text-xs text-gray-400">{biz?.emoji} {biz?.name} • {new Date(t.date).toLocaleDateString()}</p>
                   </div>
                   <p className={`font-black text-lg shrink-0 ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                    {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
+                    {t.type === 'income' ? '+' : '-'}£{t.amount.toFixed(2)}
                   </p>
                 </div>
               );

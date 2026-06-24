@@ -39,7 +39,7 @@ function PricingCalculator({ onBack }: { onBack: () => void }) {
 
       <div className="bg-white rounded-3xl p-5 shadow-md border border-gray-100 space-y-4 mb-4">
         <div>
-          <label className="block text-sm font-bold text-gray-600 mb-1">Cost of materials / supplies ($)</label>
+          <label className="block text-sm font-bold text-gray-600 mb-1">Cost of materials / supplies (£)</label>
           <input
             type="number" min="0" step="0.01" value={materials}
             onChange={e => setMaterials(e.target.value)}
@@ -60,7 +60,7 @@ function PricingCalculator({ onBack }: { onBack: () => void }) {
 
         <div>
           <label className="block text-sm font-bold text-gray-600 mb-1">
-            Your hourly rate ($) <span className="text-gray-400 font-normal">— what is your time worth?</span>
+            Your hourly rate (£) <span className="text-gray-400 font-normal">— what is your time worth?</span>
           </label>
           <input
             type="number" min="0" step="1" value={hourlyRate}
@@ -88,21 +88,21 @@ function PricingCalculator({ onBack }: { onBack: () => void }) {
         <div className="space-y-3">
           <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4">
             <p className="text-xs text-orange-600 font-bold uppercase tracking-wider">Total Cost</p>
-            <p className="text-3xl font-black text-orange-500">${cost.toFixed(2)}</p>
+            <p className="text-3xl font-black text-orange-500">£{cost.toFixed(2)}</p>
             <p className="text-xs text-gray-500 mt-1">materials + your time</p>
           </div>
 
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4">
             <p className="text-xs text-red-600 font-bold uppercase tracking-wider">Minimum Price</p>
-            <p className="text-3xl font-black text-red-500">${minPrice.toFixed(2)}</p>
+            <p className="text-3xl font-black text-red-500">£{minPrice.toFixed(2)}</p>
             <p className="text-xs text-gray-500 mt-1">You'd break even — no profit!</p>
           </div>
 
           <div className="bg-green-50 border-2 border-green-400 rounded-2xl p-4">
             <p className="text-xs text-green-700 font-bold uppercase tracking-wider">⭐ Suggested Price</p>
-            <p className="text-4xl font-black text-green-600">${suggestedPrice.toFixed(2)}</p>
+            <p className="text-4xl font-black text-green-600">£{suggestedPrice.toFixed(2)}</p>
             <p className="text-xs text-gray-500 mt-1">
-              With {margin}% margin = ${(suggestedPrice - cost).toFixed(2)} profit per unit
+              With {margin}% margin = £{(suggestedPrice - cost).toFixed(2)} profit per unit
             </p>
           </div>
 
@@ -133,10 +133,10 @@ const PLAN_STEPS = [
   { key: 'problem', label: 'What problem do you solve?', placeholder: 'e.g. People want fresh cookies but don\'t have time to bake', emoji: '🤔' },
   { key: 'customers', label: 'Who are your customers?', placeholder: 'e.g. Neighbors, classmates, parents at school events', emoji: '👥' },
   { key: 'product', label: 'What do you sell or do?', placeholder: 'e.g. Homemade chocolate chip cookies in bags of 6', emoji: '🛍️' },
-  { key: 'price', label: 'How much will you charge?', placeholder: 'e.g. $3 per bag, $5 for a dozen', emoji: '💵' },
-  { key: 'startupCosts', label: 'What do you need to start?', placeholder: 'e.g. $10 for ingredients, mixing bowls, bags', emoji: '🛒' },
+  { key: 'price', label: 'How much will you charge?', placeholder: 'e.g. £3 per bag, £5 for a dozen', emoji: '💵' },
+  { key: 'startupCosts', label: 'What do you need to start?', placeholder: 'e.g. £10 for ingredients, mixing bowls, bags', emoji: '🛒' },
   { key: 'marketing', label: 'How will you find customers?', placeholder: 'e.g. Tell neighbors, make flyers, post in family group chat', emoji: '📢' },
-  { key: 'monthGoal', label: 'What\'s your goal for the first month?', placeholder: 'e.g. Sell 20 bags and earn $60', emoji: '🎯' },
+  { key: 'monthGoal', label: 'What\'s your goal for the first month?', placeholder: 'e.g. Sell 20 bags and earn £60', emoji: '🎯' },
 ] as const;
 
 type PlanKey = typeof PLAN_STEPS[number]['key'];
@@ -388,7 +388,7 @@ export default function Businesses({ businesses, businessPlans, addBusiness, del
                   </div>
                   <div className="text-right">
                     <p className={`text-xl font-black ${b.totalEarned >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      ${b.totalEarned.toFixed(2)}
+                      £{b.totalEarned.toFixed(2)}
                     </p>
                     <button onClick={() => { if (confirm(`Delete "${b.name}"?`)) deleteBusiness(b.id); }}
                       className="text-xs text-red-400 hover:text-red-600 mt-1">delete</button>
