@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 type Tab = 'watch' | 'image' | 'video' | 'voice' | 'ai';
 
-const SCENE_DURATION = 5000;
+const hasTTS = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
 const scenes = [
   {
@@ -305,46 +305,93 @@ export default function Story() {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [videoSceneIdx, setVideoSceneIdx] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const scene = scenes[sceneIdx];
 
-  const clearTimers = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const clearProgress = () => {
     if (progressRef.current) clearInterval(progressRef.current);
   };
 
+  const cancelSpeech = () => {
+    if (hasTTS) window.speechSynthesis.cancel();
+    utteranceRef.current = null;
+  };
+
   useEffect(() => {
-    if (!playing) { clearTimers(); return; }
+    if (!playing) {
+      clearProgress();
+      cancelSpeech();
+      return;
+    }
+
     setProgress(0);
-    const tick = 50;
+    const wordCount = scene.voice.split(' ').length;
+    const estMs = Math.max(5000, (wordCount / 1.8) * 1000);
+    const tick = 100;
     progressRef.current = setInterval(() => {
-      setProgress(p => {
-        const next = p + (tick / SCENE_DURATION) * 100;
-        return next > 100 ? 100 : next;
-      });
+      setProgress(p => Math.min(97, p + (tick / estMs) * 100));
     }, tick);
-    intervalRef.current = setInterval(() => {
-      setSceneIdx(i => {
-        const next = i + 1;
-        if (next >= scenes.length) { setPlaying(false); return i; }
-        setProgress(0);
-        return next;
-      });
-    }, SCENE_DURATION);
-    return clearTimers;
+
+    if (hasTTS) {
+      const u = new SpeechSynthesisUtterance(scene.voice);
+      u.rate = 0.88;
+      u.pitch = 1.1;
+      u.volume = 1;
+      const applyVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const v = voices.find(v => v.lang === 'en-GB' && v.localService)
+          || voices.find(v => v.lang === 'en-US' && v.localService)
+          || voices.find(v => v.lang.startsWith('en'));
+        if (v) u.voice = v;
+      };
+      applyVoice();
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = applyVoice;
+      }
+      u.onend = () => {
+        clearProgress();
+        setProgress(100);
+        setTimeout(() => {
+          setSceneIdx(i => {
+            const next = i + 1;
+            if (next >= scenes.length) { setPlaying(false); return i; }
+            return next;
+          });
+        }, 700);
+      };
+      utteranceRef.current = u;
+      window.speechSynthesis.speak(u);
+    } else {
+      // Fallback: fixed 8s timer if TTS unavailable
+      const t = setTimeout(() => {
+        setSceneIdx(i => {
+          const next = i + 1;
+          if (next >= scenes.length) { setPlaying(false); return i; }
+          return next;
+        });
+      }, estMs);
+      return () => { clearProgress(); clearTimeout(t); };
+    }
+
+    return clearProgress;
   }, [playing, sceneIdx]);
 
   const goTo = (i: number) => {
-    clearTimers();
+    clearProgress();
+    cancelSpeech();
     setPlaying(false);
     setProgress(0);
     setSceneIdx(i);
   };
 
   const togglePlay = () => {
-    if (sceneIdx === scenes.length - 1 && !playing) { setSceneIdx(0); setProgress(0); }
+    if (sceneIdx === scenes.length - 1 && !playing) {
+      cancelSpeech();
+      setSceneIdx(0);
+      setProgress(0);
+    }
     setPlaying(p => !p);
   };
 
@@ -462,7 +509,7 @@ export default function Story() {
             </div>
 
             <span className="text-gray-400 text-xs font-mono whitespace-nowrap">
-              {sceneIdx + 1}:{String(Math.floor((playing ? progress : 0) / 100 * (SCENE_DURATION / 1000))).padStart(2, '0')} / 0:55
+              {sceneIdx + 1} / {scenes.length}
             </span>
           </div>
 
