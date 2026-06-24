@@ -45,4 +45,4 @@ export interface Achievement {
   unlockedAt: string;
 }
 
-export type Page = 'dashboard' | 'businesses' | 'money' | 'goals' | 'learn';
+export type Page = 'dashboard' | 'businesses' | 'money' | 'goals' | 'learn' | 'story';
