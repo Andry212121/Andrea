@@ -7,10 +7,11 @@ interface NavProps {
 
 const items: { page: Page; label: string; emoji: string }[] = [
   { page: 'dashboard', label: 'Home', emoji: '🏠' },
-  { page: 'businesses', label: 'Businesses', emoji: '🏪' },
+  { page: 'businesses', label: 'Biz', emoji: '🏪' },
   { page: 'money', label: 'Money', emoji: '💰' },
   { page: 'goals', label: 'Goals', emoji: '🎯' },
   { page: 'learn', label: 'Learn', emoji: '📚' },
+  { page: 'story', label: 'Story', emoji: '🎬' },
 ];
 
 export default function Nav({ current, onNavigate }: NavProps) {
