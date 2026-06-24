@@ -12,6 +12,7 @@ const items: { page: Page; label: string; emoji: string }[] = [
   { page: 'goals', label: 'Goals', emoji: '🎯' },
   { page: 'learn', label: 'Learn', emoji: '📚' },
   { page: 'story', label: 'Story', emoji: '🎬' },
+  { page: 'game',  label: 'Game',  emoji: '🎮' },
 ];
 
 export default function Nav({ current, onNavigate }: NavProps) {

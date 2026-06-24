@@ -9,6 +9,7 @@ import Money from './pages/Money';
 import Goals from './pages/Goals';
 import Learn from './pages/Learn';
 import Story from './pages/Story';
+import Game from './pages/Game';
 import './index.css';
 
 export default function App() {
@@ -62,6 +63,7 @@ export default function App() {
       )}
       {page === 'learn' && <Learn />}
       {page === 'story' && <Story />}
+      {page === 'game' && <Game />}
 
       <Nav current={page} onNavigate={setPage} />
     </div>
