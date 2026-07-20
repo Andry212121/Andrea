@@ -1,32 +1,47 @@
-# React + TypeScript + Vite
+# GradeHub
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+GradeHub is the UK's premium grammar school tutoring marketplace — connecting
+parents with vetted, DBS-checked 11+ tutors, starting in Buckinghamshire.
 
-Currently, two official plugins are available:
+This repository contains a **working frontend MVP**: a full Next.js + TypeScript
++ Tailwind CSS marketing site, tutor search & profiles, matching-questionnaire
+UI, booking flow UI, and parent/tutor/admin dashboard UI — all running on mock
+data (`src/lib/data/*.ts`) with no backend connected yet.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+See [`/docs`](./docs/README.md) for the full product, design, engineering and
+business documentation, including the [90-day roadmap](./docs/13-roadmap-90-days.md)
+to take this from prototype to a real, backend-connected launch.
 
-## React Compiler
+## Getting started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Open [http://localhost:3000](http://localhost:3000).
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the local dev server |
+| `npm run build` | Production build (also runs the TypeScript compiler) |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
+
+## Tech stack
+
+Next.js (App Router) · React · TypeScript · Tailwind CSS v4
+
+The target production stack also includes Supabase (database/auth/storage),
+Stripe (payments + Connect payouts), Resend (email), Google Maps/Calendar/Meet,
+Vercel + Cloudflare (hosting/CDN), and PostHog + Microsoft Clarity (analytics) —
+see [`/docs/15-deployment-guide.md`](./docs/15-deployment-guide.md) and
+[`/docs/13-roadmap-90-days.md`](./docs/13-roadmap-90-days.md) for how these get
+wired in.
+
+## Project structure
+
+See [`/docs/README.md`](./docs/README.md#repository-folder-structure) for the
+annotated folder structure.
