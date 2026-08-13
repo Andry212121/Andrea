@@ -1,160 +1,325 @@
-import { useState, useEffect, useRef } from 'react';
-import type { Business, Transaction, Goal, BusinessPlan, Achievement } from './types';
-import { ACHIEVEMENTS } from './achievements';
+import { useEffect, useState } from 'react';
+import type {
+  HouseholdPreferences, PantryItem, WeekPlan, MealSlot, MealSlotType, Day, SlotPeople,
+  MealStyleTag, ShoppingItem, PackedLunch, WorkLunchStyle, CatalogIngredient, StorageLocation,
+} from './types';
+import { DAYS } from './types';
+import { RECIPES, RECIPES_BY_ID } from './data/recipes';
+import { getMondayISO, todayDay } from './utils/date';
+import {
+  computeAvailability, generateMealOptions, matchRecipe, getExpiringIngredientIds,
+  type GenContext, type GeneratedOption,
+} from './utils/mealGenerator';
+import { generateSchoolWeek, generateWorkWeek, generateSchoolLunch, generateWorkLunch } from './utils/lunchGenerator';
+import { buildAutoShoppingItems } from './utils/shoppingList';
 
 function useLocalStorage<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
     try {
       const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : initial;
+      return stored ? (JSON.parse(stored) as T) : initial;
     } catch {
       return initial;
     }
   });
-
   useEffect(() => {
     localStorage.setItem(key, JSON.stringify(value));
   }, [key, value]);
-
   return [value, setValue] as const;
 }
 
+const DEFAULT_PREFS: HouseholdPreferences = {
+  onboarded: false,
+  adults: 2,
+  children: [],
+  diets: [],
+  allergies: [],
+  dislikes: [],
+  cuisines: [],
+  mealStyles: [],
+  defaultServings: 2,
+};
+
+export const MEAL_TYPES: MealSlotType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+export function slotKey(day: Day, type: MealSlotType): string {
+  return `${day}-${type}`;
+}
+
+function buildDefaultWeek(prefs: HouseholdPreferences): WeekPlan {
+  const slots: Record<string, MealSlot> = {};
+  for (const day of DAYS) {
+    for (const type of MEAL_TYPES) {
+      slots[slotKey(day, type)] = {
+        day,
+        type,
+        enabled: type === 'dinner',
+        people: { adults: prefs.adults, children: prefs.children.length },
+        styleFilters: [],
+      };
+    }
+  }
+  return { weekStart: getMondayISO(), slots };
+}
+
 export function useAppStore() {
-  const [businesses, setBusinesses] = useLocalStorage<Business[]>('ke_businesses', []);
-  const [transactions, setTransactions] = useLocalStorage<Transaction[]>('ke_transactions', []);
-  const [goals, setGoals] = useLocalStorage<Goal[]>('ke_goals', []);
-  const [businessPlans, setBusinessPlans] = useLocalStorage<BusinessPlan[]>('ke_plans', []);
-  const [unlockedAchievements, setUnlockedAchievements] = useLocalStorage<Achievement[]>('ke_achievements', []);
-  const [kidName, setKidName] = useLocalStorage<string>('ke_name', '');
-  const [newAchievement, setNewAchievement] = useState<string | null>(null);
-  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [prefs, setPrefsState] = useLocalStorage<HouseholdPreferences>('pp_prefs', DEFAULT_PREFS);
+  const [pantry, setPantry] = useLocalStorage<PantryItem[]>('pp_pantry', []);
+  const [weekPlan, setWeekPlan] = useLocalStorage<WeekPlan>('pp_week', buildDefaultWeek(DEFAULT_PREFS));
+  const [schoolLunches, setSchoolLunches] = useLocalStorage<PackedLunch[]>('pp_school_lunches', []);
+  const [workLunches, setWorkLunches] = useLocalStorage<PackedLunch[]>('pp_work_lunches', []);
+  const [shoppingItems, setShoppingItems] = useLocalStorage<ShoppingItem[]>('pp_shopping', []);
 
-  const lessonsCompleted = (() => {
-    try {
-      const s = localStorage.getItem('ke_learn_completed');
-      return s ? JSON.parse(s).length : 0;
-    } catch { return 0; }
-  })();
+  // Roll over to a fresh (empty) week automatically once Monday passes.
+  // Intentionally runs once on mount only — this is a startup check, not a live sync.
+  useEffect(() => {
+    const currentMonday = getMondayISO();
+    if (weekPlan.weekStart !== currentMonday) {
+      setWeekPlan(buildDefaultWeek(prefs));
+    }
+  }, []);
 
-  const checkAchievements = (
-    biz: Business[],
-    txs: Transaction[],
-    gls: Goal[],
-    plans: BusinessPlan[],
-    currentUnlocked: Achievement[]
-  ) => {
-    const totalIncome = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const state = {
-      businessCount: biz.length,
-      totalIncome,
-      transactionCount: txs.length,
-      completedGoals: gls.filter(g => g.completed).length,
-      goalCount: gls.length,
-      lessonsCompleted,
-      totalLessons: 6,
-      businessPlanCount: plans.length,
+  // ---------- Preferences ----------
+
+  const setPrefs = (partial: Partial<HouseholdPreferences>) => {
+    setPrefsState((prev) => ({ ...prev, ...partial }));
+  };
+
+  const completeOnboarding = (finalPrefs: Omit<HouseholdPreferences, 'onboarded'>) => {
+    const full = { ...finalPrefs, onboarded: true };
+    setPrefsState(full);
+    setWeekPlan(buildDefaultWeek(full));
+  };
+
+  // ---------- Pantry ----------
+
+  const pantryByIngredient = new Map(pantry.map((p) => [p.ingredientId, p]));
+
+  const toggleCatalogItem = (catalogItem: CatalogIngredient) => {
+    const existing = pantryByIngredient.get(catalogItem.id);
+    if (existing) {
+      setPantry((prev) => prev.filter((p) => p.id !== existing.id));
+    } else {
+      const item: PantryItem = {
+        id: crypto.randomUUID(),
+        ingredientId: catalogItem.id,
+        name: catalogItem.name,
+        emoji: catalogItem.emoji,
+        section: catalogItem.section,
+        category: catalogItem.category,
+        have: true,
+        unit: catalogItem.defaultUnit,
+        addedAt: new Date().toISOString(),
+      };
+      setPantry((prev) => [...prev, item]);
+    }
+  };
+
+  const addCustomItem = (input: { name: string; section: StorageLocation; category: string; emoji?: string }) => {
+    const id = crypto.randomUUID();
+    const item: PantryItem = {
+      id,
+      ingredientId: `custom-${input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${id.slice(0, 6)}`,
+      name: input.name,
+      emoji: input.emoji || '🍽️',
+      section: input.section,
+      category: input.category,
+      have: true,
+      custom: true,
+      addedAt: new Date().toISOString(),
     };
+    setPantry((prev) => [...prev, item]);
+    return item;
+  };
 
-    const unlockedIds = new Set(currentUnlocked.map(a => a.id));
-    const newOnes: Achievement[] = [];
+  const updatePantryItem = (id: string, patch: Partial<PantryItem>) => {
+    setPantry((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  };
 
-    for (const def of ACHIEVEMENTS) {
-      if (!unlockedIds.has(def.id) && def.check(state)) {
-        newOnes.push({ id: def.id, unlockedAt: new Date().toISOString() });
+  const removePantryItem = (id: string) => {
+    setPantry((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const expiringIngredientIds = getExpiringIngredientIds(pantry);
+  const expiringItems = pantry.filter((p) => p.have && expiringIngredientIds.has(p.ingredientId));
+
+  // ---------- Meal planning ----------
+
+  const updateSlot = (day: Day, type: MealSlotType, patch: Partial<MealSlot>) => {
+    setWeekPlan((prev) => ({
+      ...prev,
+      slots: { ...prev.slots, [slotKey(day, type)]: { ...prev.slots[slotKey(day, type)], ...patch } },
+    }));
+  };
+
+  const toggleSlotEnabled = (day: Day, type: MealSlotType) => {
+    const s = weekPlan.slots[slotKey(day, type)];
+    updateSlot(day, type, { enabled: !s.enabled });
+  };
+
+  const setSlotPeople = (day: Day, type: MealSlotType, people: SlotPeople) => updateSlot(day, type, { people });
+  const setSlotStyleFilters = (day: Day, type: MealSlotType, styleFilters: MealStyleTag[]) =>
+    updateSlot(day, type, { styleFilters });
+  const setSlotMaxCookTime = (day: Day, type: MealSlotType, maxCookTime: number | undefined) =>
+    updateSlot(day, type, { maxCookTime });
+
+  const genContextFor = (day: Day, type: MealSlotType): GenContext => {
+    const s = weekPlan.slots[slotKey(day, type)];
+    return {
+      prefs,
+      mealType: type,
+      people: s.people,
+      styleFilters: s.styleFilters,
+      maxCookTime: s.maxCookTime,
+      expiringIngredientIds,
+    };
+  };
+
+  const getOptionsForSlot = (day: Day, type: MealSlotType, count = 3, excludeIds: string[] = []): GeneratedOption[] => {
+    const availability = computeAvailability(pantry, weekPlan, slotKey(day, type));
+    const pool = excludeIds.length ? RECIPES.filter((r) => !excludeIds.includes(r.id)) : RECIPES;
+    return generateMealOptions(genContextFor(day, type), availability, count, pool);
+  };
+
+  const activeMealTypes = MEAL_TYPES.filter((t) => DAYS.some((d) => weekPlan.slots[slotKey(d, t)]?.enabled));
+
+  const toggleMealTypeActive = (type: MealSlotType) => {
+    const isActive = DAYS.some((d) => weekPlan.slots[slotKey(d, type)]?.enabled);
+    setWeekPlan((prev) => {
+      const slots = { ...prev.slots };
+      for (const d of DAYS) {
+        slots[slotKey(d, type)] = { ...slots[slotKey(d, type)], enabled: !isActive };
+      }
+      return { ...prev, slots };
+    });
+  };
+
+  const selectMealForSlot = (day: Day, type: MealSlotType, recipeId: string) => {
+    const recipe = RECIPES_BY_ID[recipeId];
+    if (!recipe) return;
+    const s = weekPlan.slots[slotKey(day, type)];
+    const servings = Math.max(1, s.people.adults + s.people.children);
+    const availability = computeAvailability(pantry, weekPlan, slotKey(day, type));
+    const match = matchRecipe(recipe, servings, availability);
+    updateSlot(day, type, {
+      meal: { recipeId, servings, allocatedIngredientIds: match.allocatedIngredientIds },
+    });
+  };
+
+  const changeServings = (day: Day, type: MealSlotType, servings: number) => {
+    const s = weekPlan.slots[slotKey(day, type)];
+    if (!s.meal) return;
+    const recipe = RECIPES_BY_ID[s.meal.recipeId];
+    const availability = computeAvailability(pantry, weekPlan, slotKey(day, type));
+    const match = recipe ? matchRecipe(recipe, Math.max(1, servings), availability) : null;
+    updateSlot(day, type, {
+      meal: { ...s.meal, servings: Math.max(1, servings), allocatedIngredientIds: match?.allocatedIngredientIds ?? s.meal.allocatedIngredientIds },
+    });
+  };
+
+  const removeMealFromSlot = (day: Day, type: MealSlotType) => {
+    updateSlot(day, type, { meal: undefined });
+  };
+
+  const cookMeal = (day: Day, type: MealSlotType) => {
+    const s = weekPlan.slots[slotKey(day, type)];
+    if (!s.meal) return;
+    const recipe = RECIPES_BY_ID[s.meal.recipeId];
+    if (!recipe) return;
+    const scale = s.meal.servings / recipe.baseServings;
+
+    setPantry((prev) =>
+      prev.map((item) => {
+        const used = recipe.ingredients.find((i) => i.ingredientId === item.ingredientId && !i.optional);
+        if (!used || !item.have) return item;
+        if (item.quantity !== undefined) {
+          const remaining = Math.max(0, item.quantity - used.qty * scale);
+          return { ...item, quantity: remaining, have: remaining > 0 };
+        }
+        // No tracked quantity: perishable single-use categories are treated as consumed.
+        const limited = ['Meat', 'Fish', 'Dairy', 'Eggs', 'Deli products', 'Leftovers', 'Frozen meals', 'Bread'].includes(item.category);
+        return limited ? { ...item, have: false } : item;
+      })
+    );
+
+    updateSlot(day, type, { meal: { ...s.meal, cookedAt: new Date().toISOString() } });
+  };
+
+  // ---------- Pack lunches ----------
+
+  const schoolDays: Day[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+  const generateSchoolLunchWeek = (childId: string) => {
+    const generated = generateSchoolWeek(childId, prefs, schoolDays);
+    setSchoolLunches((prev) => [...prev.filter((l) => l.ownerId !== childId), ...generated]);
+  };
+
+  const regenerateSchoolDay = (childId: string, day: Day) => {
+    const usedMains = new Set(schoolLunches.filter((l) => l.ownerId === childId && l.day !== day).map((l) => l.items.find((i) => i.slot === 'main')?.name ?? ''));
+    const usedSnacks = new Set(schoolLunches.filter((l) => l.ownerId === childId && l.day !== day).map((l) => l.items.find((i) => i.slot === 'snack')?.name ?? ''));
+    const lunch = generateSchoolLunch(day, childId, prefs, { mains: usedMains, snacks: usedSnacks });
+    setSchoolLunches((prev) => [...prev.filter((l) => !(l.ownerId === childId && l.day === day)), lunch]);
+  };
+
+  const generateWorkLunchWeek = (style: WorkLunchStyle) => {
+    const generated = generateWorkWeek(style, prefs, pantry, weekPlan, schoolDays);
+    setWorkLunches(generated);
+  };
+
+  const regenerateWorkDay = (day: Day, style: WorkLunchStyle) => {
+    const used = new Set(workLunches.filter((l) => l.day !== day && l.recipeId).map((l) => l.recipeId!));
+    const lunch = generateWorkLunch(day, style, prefs, pantry, weekPlan, used);
+    if (lunch) setWorkLunches((prev) => [...prev.filter((l) => l.day !== day), lunch]);
+  };
+
+  // ---------- Shopping list ----------
+
+  const refreshShoppingList = () => {
+    const auto = buildAutoShoppingItems(weekPlan, pantry);
+    setShoppingItems((prev) => [...prev.filter((i) => i.source === 'manual'), ...auto]);
+  };
+
+  const addManualShoppingItem = (name: string, category: ShoppingItem['category']) => {
+    setShoppingItems((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name, category, checked: false, source: 'manual' },
+    ]);
+  };
+
+  const removeShoppingItem = (id: string) => setShoppingItems((prev) => prev.filter((i) => i.id !== id));
+
+  const toggleShoppingChecked = (id: string) =>
+    setShoppingItems((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
+
+  const addCheckedToMyFood = () => {
+    const checked = shoppingItems.filter((i) => i.checked);
+    for (const item of checked) {
+      const already = item.ingredientId && pantryByIngredient.get(item.ingredientId);
+      if (already) {
+        updatePantryItem(already.id, { have: true });
+      } else {
+        addCustomItem({
+          name: item.name,
+          section: item.category === 'Frozen' ? 'freezer' : 'pantry',
+          category: item.category,
+        });
       }
     }
-
-    if (newOnes.length > 0) {
-      const updated = [...currentUnlocked, ...newOnes];
-      setUnlockedAchievements(updated);
-      setNewAchievement(newOnes[newOnes.length - 1].id);
-      if (dismissTimer.current) clearTimeout(dismissTimer.current);
-      dismissTimer.current = setTimeout(() => setNewAchievement(null), 4000);
-    }
+    setShoppingItems((prev) => prev.filter((i) => !i.checked));
   };
-
-  const addBusiness = (b: Omit<Business, 'id' | 'createdAt' | 'totalEarned'>) => {
-    const newB: Business = {
-      ...b,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      totalEarned: 0,
-    };
-    const updated = [...businesses, newB];
-    setBusinesses(updated);
-    checkAchievements(updated, transactions, goals, businessPlans, unlockedAchievements);
-    return newB;
-  };
-
-  const addTransaction = (t: Omit<Transaction, 'id'>) => {
-    const newT: Transaction = { ...t, id: crypto.randomUUID() };
-    const updatedTxs = [...transactions, newT];
-    setTransactions(updatedTxs);
-    const updatedBiz = businesses.map(b =>
-      b.id === t.businessId
-        ? { ...b, totalEarned: b.totalEarned + (t.type === 'income' ? t.amount : -t.amount) }
-        : b
-    );
-    setBusinesses(updatedBiz);
-    checkAchievements(updatedBiz, updatedTxs, goals, businessPlans, unlockedAchievements);
-  };
-
-  const addGoal = (g: Omit<Goal, 'id' | 'completed' | 'currentAmount'>) => {
-    const newG: Goal = { ...g, id: crypto.randomUUID(), completed: false, currentAmount: 0 };
-    const updated = [...goals, newG];
-    setGoals(updated);
-    checkAchievements(businesses, transactions, updated, businessPlans, unlockedAchievements);
-  };
-
-  const contributeToGoal = (goalId: string, amount: number) => {
-    const updated = goals.map(g =>
-      g.id === goalId
-        ? {
-            ...g,
-            currentAmount: Math.min(g.currentAmount + amount, g.targetAmount),
-            completed: g.currentAmount + amount >= g.targetAmount,
-          }
-        : g
-    );
-    setGoals(updated);
-    checkAchievements(businesses, transactions, updated, businessPlans, unlockedAchievements);
-  };
-
-  const saveBusinessPlan = (plan: Omit<BusinessPlan, 'id' | 'createdAt'>) => {
-    const existing = businessPlans.find(p => p.businessId === plan.businessId);
-    let updated: BusinessPlan[];
-    if (existing) {
-      updated = businessPlans.map(p =>
-        p.businessId === plan.businessId ? { ...p, ...plan } : p
-      );
-    } else {
-      updated = [...businessPlans, { ...plan, id: crypto.randomUUID(), createdAt: new Date().toISOString() }];
-    }
-    setBusinessPlans(updated);
-    checkAchievements(businesses, transactions, goals, updated, unlockedAchievements);
-  };
-
-  const deleteGoal = (goalId: string) => setGoals(prev => prev.filter(g => g.id !== goalId));
-
-  const deleteBusiness = (businessId: string) => {
-    setBusinesses(prev => prev.filter(b => b.id !== businessId));
-    setTransactions(prev => prev.filter(t => t.businessId !== businessId));
-    setBusinessPlans(prev => prev.filter(p => p.businessId !== businessId));
-  };
-
-  const totalBalance = transactions.reduce(
-    (sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount),
-    0
-  );
-
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
   return {
-    businesses, transactions, goals, businessPlans,
-    unlockedAchievements, kidName, newAchievement,
-    setKidName, addBusiness, addTransaction, addGoal,
-    contributeToGoal, deleteGoal, deleteBusiness,
-    saveBusinessPlan, totalBalance, totalIncome,
-    dismissAchievement: () => setNewAchievement(null),
+    prefs, setPrefs, completeOnboarding,
+    pantry, pantryByIngredient, toggleCatalogItem, addCustomItem, updatePantryItem, removePantryItem,
+    expiringItems, expiringIngredientIds,
+    weekPlan, toggleSlotEnabled, setSlotPeople, setSlotStyleFilters, setSlotMaxCookTime,
+    activeMealTypes, toggleMealTypeActive,
+    getOptionsForSlot, selectMealForSlot, changeServings, removeMealFromSlot, cookMeal,
+    schoolLunches, generateSchoolLunchWeek, regenerateSchoolDay,
+    workLunches, generateWorkLunchWeek, regenerateWorkDay,
+    shoppingItems, refreshShoppingList, addManualShoppingItem, removeShoppingItem, toggleShoppingChecked, addCheckedToMyFood,
+    todayDay: todayDay(),
   };
 }
+
+export type AppStore = ReturnType<typeof useAppStore>;

@@ -2,68 +2,33 @@ import { useState } from 'react';
 import type { Page } from './types';
 import { useAppStore } from './store';
 import Nav from './components/Nav';
-import AchievementToast from './components/AchievementToast';
-import Dashboard from './pages/Dashboard';
-import Businesses from './pages/Businesses';
-import Money from './pages/Money';
-import Goals from './pages/Goals';
-import Learn from './pages/Learn';
-import Story from './pages/Story';
+import Onboarding from './pages/Onboarding';
+import Home from './pages/Home';
+import MealPlan from './pages/MealPlan';
+import MyFood from './pages/MyFood';
+import PackLunch from './pages/PackLunch';
+import Shopping from './pages/Shopping';
 import './index.css';
 
 export default function App() {
-  const [page, setPage] = useState<Page>('dashboard');
+  const [page, setPage] = useState<Page>('home');
   const store = useAppStore();
 
+  if (!store.prefs.onboarded) {
+    return <Onboarding onComplete={store.completeOnboarding} />;
+  }
+
+  const uncheckedShopping = store.shoppingItems.filter((i) => !i.checked).length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-orange-50">
-      <AchievementToast
-        achievementId={store.newAchievement}
-        onDismiss={store.dismissAchievement}
-      />
+    <div className="min-h-screen bg-[#f7faf5]">
+      {page === 'home' && <Home store={store} onNavigate={setPage} />}
+      {page === 'mealplan' && <MealPlan store={store} />}
+      {page === 'myfood' && <MyFood store={store} />}
+      {page === 'packlunch' && <PackLunch store={store} />}
+      {page === 'shopping' && <Shopping store={store} />}
 
-      {page === 'dashboard' && (
-        <Dashboard
-          kidName={store.kidName}
-          setKidName={store.setKidName}
-          totalBalance={store.totalBalance}
-          totalIncome={store.totalIncome}
-          businesses={store.businesses}
-          goals={store.goals}
-          unlockedAchievements={store.unlockedAchievements}
-          onNavigate={(p) => setPage(p as Page)}
-        />
-      )}
-      {page === 'businesses' && (
-        <Businesses
-          businesses={store.businesses}
-          businessPlans={store.businessPlans}
-          addBusiness={store.addBusiness}
-          deleteBusiness={store.deleteBusiness}
-          saveBusinessPlan={store.saveBusinessPlan}
-        />
-      )}
-      {page === 'money' && (
-        <Money
-          businesses={store.businesses}
-          transactions={store.transactions}
-          addTransaction={store.addTransaction}
-          totalBalance={store.totalBalance}
-        />
-      )}
-      {page === 'goals' && (
-        <Goals
-          goals={store.goals}
-          addGoal={store.addGoal}
-          contributeToGoal={store.contributeToGoal}
-          deleteGoal={store.deleteGoal}
-          totalBalance={store.totalBalance}
-        />
-      )}
-      {page === 'learn' && <Learn />}
-      {page === 'story' && <Story />}
-
-      <Nav current={page} onNavigate={setPage} />
+      <Nav current={page} onNavigate={setPage} shoppingCount={uncheckedShopping} />
     </div>
   );
 }

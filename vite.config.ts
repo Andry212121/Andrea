@@ -11,11 +11,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'KidsBiz - Young Entrepreneurs',
-        short_name: 'KidsBiz',
-        description: 'Track your businesses, money, and goals!',
-        theme_color: '#facc15',
-        background_color: '#fef9f0',
+        name: 'PantryPal - Smart Meal Planner',
+        short_name: 'PantryPal',
+        description: 'Plan meals around the food you already have at home.',
+        theme_color: '#16a34a',
+        background_color: '#f7faf5',
         display: 'standalone',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
