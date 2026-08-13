@@ -210,4 +210,4 @@ export interface ShoppingItem {
   ingredientId?: string;
 }
 
-export type Page = 'home' | 'mealplan' | 'myfood' | 'packlunch' | 'shopping';
+export type Page = 'home' | 'mealplan' | 'myfood' | 'packlunch' | 'shopping' | 'settings';

@@ -1,6 +1,6 @@
 import type {
   Recipe, RecipeIngredient, HouseholdPreferences, PantryItem, MealSlotType,
-  MealStyleTag, SlotPeople, WeekPlan, Day,
+  MealStyleTag, SlotPeople, WeekPlan, Day, DietTag,
 } from '../types';
 import { RECIPES } from '../data/recipes';
 import { slugify } from './slugify';
@@ -107,11 +107,38 @@ function containsWord(haystack: string, needle: string): boolean {
   return haystack.toLowerCase().includes(needle.trim().toLowerCase());
 }
 
+const MEAT_KEYWORDS = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'bacon', 'sausage', 'ham', 'salami', 'chorizo', 'steak', 'mince'];
+const FISH_KEYWORDS = ['salmon', 'cod', 'tuna', 'prawn', 'fish', 'anchovy', 'shrimp'];
+
+function hasIngredientLike(recipe: Recipe, keywords: string[]): boolean {
+  return recipe.ingredients.some((i) => keywords.some((k) => i.name.toLowerCase().includes(k)));
+}
+
+/** Real dietary *restrictions* are checked dynamically from ingredients/allergens rather than
+ * trusting the hand-authored `recipe.diets` tags alone — those tags are necessarily incomplete
+ * (a recipe is rarely tagged with every diet it happens to satisfy), so relying on them as an
+ * AND-filter across several selected diets could wrongly zero out otherwise-valid recipes.
+ * "Leaning" diets like high-protein/low-carb/mediterranean are treated as soft scoring
+ * preferences instead of hard filters — see scoreRecipe. */
+const HARD_DIET_CHECKS: Partial<Record<DietTag, (r: Recipe) => boolean>> = {
+  vegetarian: (r) => !hasIngredientLike(r, MEAT_KEYWORDS) && !hasIngredientLike(r, FISH_KEYWORDS) && !r.allergens.includes('fish') && !r.allergens.includes('shellfish'),
+  vegan: (r) =>
+    !hasIngredientLike(r, MEAT_KEYWORDS) && !hasIngredientLike(r, FISH_KEYWORDS) &&
+    !r.allergens.includes('fish') && !r.allergens.includes('shellfish') &&
+    !r.allergens.includes('dairy') && !r.allergens.includes('egg') &&
+    !r.ingredients.some((i) => i.name.toLowerCase() === 'honey'),
+  pescatarian: (r) => !hasIngredientLike(r, MEAT_KEYWORDS),
+  'gluten-free': (r) => !r.allergens.includes('gluten'),
+  'dairy-free': (r) => !r.allergens.includes('dairy'),
+};
+
 export function passesHardFilters(recipe: Recipe, ctx: GenContext): boolean {
   if (!recipe.mealTypes.includes(ctx.mealType)) return false;
 
-  const diets = ctx.prefs.diets.filter((d) => d !== 'no-restrictions');
-  if (diets.length > 0 && !diets.every((d) => recipe.diets.includes(d))) return false;
+  for (const diet of ctx.prefs.diets) {
+    const check = HARD_DIET_CHECKS[diet];
+    if (check && !check(recipe)) return false;
+  }
 
   for (const allergy of ctx.prefs.allergies) {
     const a = allergy.toLowerCase();
@@ -130,11 +157,22 @@ export function passesHardFilters(recipe: Recipe, ctx: GenContext): boolean {
   return true;
 }
 
+const SOFT_DIETS: DietTag[] = ['low-carb', 'high-protein', 'mediterranean'];
+
 function scoreRecipe(recipe: Recipe, ctx: GenContext, match: RecipeMatch): number {
   let score = match.matchRatio * 100;
 
   if (ctx.prefs.cuisines.length > 0 && ctx.prefs.cuisines.includes(recipe.cuisine)) score += 20;
   if (recipe.cuisine === 'International') score += 4;
+
+  // Leaning diets (not hard restrictions) nudge ranking rather than exclude recipes outright.
+  for (const diet of ctx.prefs.diets) {
+    if (!SOFT_DIETS.includes(diet)) continue;
+    if (recipe.diets.includes(diet)) score += 12;
+    else if (diet === 'high-protein' && recipe.nutrition.protein >= 25) score += 8;
+    else if (diet === 'low-carb' && recipe.nutrition.carbs <= 20) score += 8;
+    else if (diet === 'mediterranean' && ['Italian', 'Mediterranean', 'Greek'].includes(recipe.cuisine)) score += 8;
+  }
 
   for (const style of ctx.styleFilters) {
     if (recipe.tags.includes(style)) score += 15;

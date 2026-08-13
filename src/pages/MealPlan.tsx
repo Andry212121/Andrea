@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AppStore } from '../store';
 import { slotKey, MEAL_TYPES } from '../store';
-import type { Day, MealSlotType, MealStyleTag } from '../types';
+import type { Day, MealSlotType, MealStyleTag, Page } from '../types';
 import { DAYS } from '../types';
 import { RECIPES_BY_ID } from '../data/recipes';
 import { MEAL_TYPE_META, MEAL_STYLE_OPTIONS, QUICK_COOK_TIMES } from '../data/options';
@@ -16,11 +16,12 @@ import RecipeDetail from '../components/RecipeDetail';
 
 interface MealPlanProps {
   store: AppStore;
+  onNavigate: (p: Page) => void;
 }
 
 interface SlotRef { day: Day; type: MealSlotType }
 
-export default function MealPlan({ store }: MealPlanProps) {
+export default function MealPlan({ store, onNavigate }: MealPlanProps) {
   const [editing, setEditing] = useState<SlotRef | null>(null);
   const [phase, setPhase] = useState<'edit' | 'options'>('edit');
   const [excludeIds, setExcludeIds] = useState<string[]>([]);
@@ -107,6 +108,13 @@ export default function MealPlan({ store }: MealPlanProps) {
               />
             ))}
           </div>
+
+          <button
+            onClick={() => { setSettingsOpen(false); onNavigate('settings'); }}
+            className="w-full text-left mt-5 pt-4 border-t border-gray-100 text-sm font-bold text-emerald-600"
+          >
+            🥗 Edit diet, allergies & cuisine preferences →
+          </button>
         </div>
       </Sheet>
 
@@ -132,6 +140,7 @@ export default function MealPlan({ store }: MealPlanProps) {
               store.selectMealForSlot(editing.day, editing.type, recipeId);
               setEditing(null);
             }}
+            onEditPreferences={() => { setEditing(null); onNavigate('settings'); }}
           />
         )}
       </Sheet>
@@ -240,14 +249,42 @@ function SlotEditor({ store, slotRef, onGenerate }: { store: AppStore; slotRef: 
   );
 }
 
-function SlotOptions({ store, slotRef, excludeIds, onChoose }: { store: AppStore; slotRef: SlotRef; excludeIds: string[]; onChoose: (id: string) => void }) {
+function SlotOptions({
+  store, slotRef, excludeIds, onChoose, onEditPreferences,
+}: {
+  store: AppStore; slotRef: SlotRef; excludeIds: string[]; onChoose: (id: string) => void; onEditPreferences: () => void;
+}) {
   const slot = store.weekPlan.slots[slotKey(slotRef.day, slotRef.type)];
   const options = store.getOptionsForSlot(slotRef.day, slotRef.type, 3, excludeIds);
   const servings = Math.max(1, slot.people.adults + slot.people.children);
+  const hasSlotFilters = slot.styleFilters.length > 0 || !!slot.maxCookTime;
+
   return (
     <div className="pb-4">
       <p className="text-sm text-gray-500 px-5 mb-3">Here are your top matches based on what's in your kitchen.</p>
-      <MealOptionsList options={options} servings={servings} onChoose={onChoose} />
+      <MealOptionsList
+        options={options}
+        servings={servings}
+        onChoose={onChoose}
+        emptyStateActions={
+          <div className="space-y-2 mt-2">
+            {hasSlotFilters && (
+              <button
+                onClick={() => {
+                  store.setSlotStyleFilters(slotRef.day, slotRef.type, []);
+                  store.setSlotMaxCookTime(slotRef.day, slotRef.type, undefined);
+                }}
+                className="w-full bg-gray-900 text-white font-bold py-3 rounded-2xl"
+              >
+                Clear this meal's style & time filters
+              </button>
+            )}
+            <button onClick={onEditPreferences} className="w-full border-2 border-emerald-600 text-emerald-700 font-bold py-3 rounded-2xl">
+              🥗 Edit diet, allergy & cuisine preferences
+            </button>
+          </div>
+        }
+      />
     </div>
   );
 }

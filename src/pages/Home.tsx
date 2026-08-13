@@ -45,9 +45,18 @@ export default function Home({ store, onNavigate }: HomeProps) {
 
   return (
     <div className="pb-28">
-      <div className="px-5 pt-8 pb-3">
-        <p className="text-sm text-gray-400 font-medium">Hey there 👋</p>
-        <h1 className="text-2xl font-extrabold text-gray-900">What's cooking today?</h1>
+      <div className="px-5 pt-8 pb-3 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-gray-400 font-medium">Hey there 👋</p>
+          <h1 className="text-2xl font-extrabold text-gray-900">What's cooking today?</h1>
+        </div>
+        <button
+          onClick={() => onNavigate('settings')}
+          aria-label="Preferences"
+          className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-lg shrink-0 mt-1"
+        >
+          ⚙️
+        </button>
       </div>
 
       {store.expiringItems.length > 0 && (

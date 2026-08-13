@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { GeneratedOption } from '../utils/mealGenerator';
 import RecipeOptionCard from './RecipeOptionCard';
 import RecipeDetail from './RecipeDetail';
@@ -9,20 +9,27 @@ interface MealOptionsListProps {
   options: GeneratedOption[];
   servings: number;
   onChoose: (recipeId: string) => void;
+  /** Shown below the empty state — e.g. "Edit preferences" / "Clear filters" shortcuts,
+   * since a zero-result search is almost always caused by a filter combination the user
+   * can't see from here. */
+  emptyStateActions?: ReactNode;
 }
 
 const LABELS = ['Option 1', 'Option 2', 'Option 3', 'Option 4', 'Option 5'];
 
-export default function MealOptionsList({ options, servings, onChoose }: MealOptionsListProps) {
+export default function MealOptionsList({ options, servings, onChoose, emptyStateActions }: MealOptionsListProps) {
   const [viewing, setViewing] = useState<GeneratedOption | null>(null);
 
   if (options.length === 0) {
     return (
-      <EmptyState
-        emoji="🤔"
-        title="No matching recipes"
-        subtitle="Try loosening a filter (cooking time, meal style) or add a few more ingredients to My Food."
-      />
+      <div className="px-5">
+        <EmptyState
+          emoji="🤔"
+          title="No matching recipes"
+          subtitle="Nothing in our recipe book fits every filter you've set — diet, allergies, cuisine, cooking time and dislikes all narrow the list down."
+        />
+        {emptyStateActions}
+      </div>
     );
   }
 

@@ -8,6 +8,7 @@ import MealPlan from './pages/MealPlan';
 import MyFood from './pages/MyFood';
 import PackLunch from './pages/PackLunch';
 import Shopping from './pages/Shopping';
+import Settings from './pages/Settings';
 import './index.css';
 
 export default function App() {
@@ -23,10 +24,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f7faf5]">
       {page === 'home' && <Home store={store} onNavigate={setPage} />}
-      {page === 'mealplan' && <MealPlan store={store} />}
+      {page === 'mealplan' && <MealPlan store={store} onNavigate={setPage} />}
       {page === 'myfood' && <MyFood store={store} />}
       {page === 'packlunch' && <PackLunch store={store} />}
       {page === 'shopping' && <Shopping store={store} />}
+      {page === 'settings' && <Settings store={store} onNavigate={setPage} />}
 
       <Nav current={page} onNavigate={setPage} shoppingCount={uncheckedShopping} />
     </div>
