@@ -204,7 +204,8 @@ export interface ShoppingItem {
   id: string;
   name: string;
   category: ShoppingCategory;
-  quantity?: string;
+  qty?: number;
+  unit?: string;
   checked: boolean;
   source: 'auto' | 'manual';
   ingredientId?: string;

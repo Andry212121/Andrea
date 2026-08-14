@@ -4,29 +4,30 @@ import RecipeOptionCard from './RecipeOptionCard';
 import RecipeDetail from './RecipeDetail';
 import Sheet from './Sheet';
 import EmptyState from './EmptyState';
+import { t, type Lang } from '../i18n';
 
 interface MealOptionsListProps {
   options: GeneratedOption[];
   servings: number;
   onChoose: (recipeId: string) => void;
+  lang: Lang;
   /** Shown below the empty state — e.g. "Edit preferences" / "Clear filters" shortcuts,
    * since a zero-result search is almost always caused by a filter combination the user
    * can't see from here. */
   emptyStateActions?: ReactNode;
 }
 
-const LABELS = ['Option 1', 'Option 2', 'Option 3', 'Option 4', 'Option 5'];
-
-export default function MealOptionsList({ options, servings, onChoose, emptyStateActions }: MealOptionsListProps) {
+export default function MealOptionsList({ options, servings, onChoose, lang, emptyStateActions }: MealOptionsListProps) {
   const [viewing, setViewing] = useState<GeneratedOption | null>(null);
+  const LABELS = [1, 2, 3, 4, 5].map((n) => `${lang === 'en' ? 'Option' : 'Opzione'} ${n}`);
 
   if (options.length === 0) {
     return (
       <div className="px-5">
         <EmptyState
           emoji="🤔"
-          title="No matching recipes"
-          subtitle="Nothing in our recipe book fits every filter you've set — diet, allergies, cuisine, cooking time and dislikes all narrow the list down."
+          title={t(lang, 'mealplan.noMatches')}
+          subtitle={t(lang, 'mealplan.noMatchesSub')}
         />
         {emptyStateActions}
       </div>
@@ -41,18 +42,20 @@ export default function MealOptionsList({ options, servings, onChoose, emptyStat
           recipe={opt.recipe}
           match={opt.match}
           servings={servings}
-          optionLabel={LABELS[i] ?? `Option ${i + 1}`}
+          optionLabel={LABELS[i] ?? `${lang === 'en' ? 'Option' : 'Opzione'} ${i + 1}`}
+          lang={lang}
           onSelect={() => onChoose(opt.recipe.id)}
           onViewRecipe={() => setViewing(opt)}
         />
       ))}
 
-      <Sheet open={!!viewing} onClose={() => setViewing(null)} title="Recipe">
+      <Sheet open={!!viewing} onClose={() => setViewing(null)} title={t(lang, 'mealplan.recipe')}>
         {viewing && (
           <RecipeDetail
             recipe={viewing.recipe}
             servings={servings}
             match={viewing.match}
+            lang={lang}
             footer={
               <button
                 onClick={() => {
@@ -61,7 +64,7 @@ export default function MealOptionsList({ options, servings, onChoose, emptyStat
                 }}
                 className="w-full bg-emerald-600 text-white font-bold py-3 rounded-2xl"
               >
-                Choose this option
+                {t(lang, 'recipe.chooseThisOption')}
               </button>
             }
           />

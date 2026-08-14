@@ -4,18 +4,19 @@ import Chip from '../components/Chip';
 import Stepper from '../components/Stepper';
 import ProgressDots from '../components/ProgressDots';
 import { DIET_OPTIONS, COMMON_ALLERGIES, CUISINE_OPTIONS, MEAL_STYLE_OPTIONS } from '../data/options';
+import { t, dietLabel, cuisineLabel, mealStyleLabel, allergyLabel, type Lang } from '../i18n';
 
 interface OnboardingProps {
   onComplete: (prefs: Omit<HouseholdPreferences, 'onboarded'>) => void;
+  language: Lang;
+  setLanguage: (l: Lang) => void;
 }
-
-const STEPS = ['Household', 'Diet', 'Allergies', 'Dislikes', 'Cuisines', 'Styles', 'Servings'];
 
 function toggle<T>(arr: T[], item: T): T[] {
   return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
 }
 
-export default function Onboarding({ onComplete }: OnboardingProps) {
+export default function Onboarding({ onComplete, language, setLanguage }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState<{ id: string; age: number }[]>([]);
@@ -27,6 +28,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [cuisines, setCuisines] = useState<CuisineTag[]>([]);
   const [mealStyles, setMealStyles] = useState<MealStyleTag[]>([]);
   const [defaultServings, setDefaultServings] = useState(2);
+
+  const STEPS = [
+    t(language, 'onboarding.stepLanguage'), t(language, 'onboarding.stepHousehold'), t(language, 'onboarding.stepDiet'),
+    t(language, 'onboarding.stepAllergies'), t(language, 'onboarding.stepDislikes'), t(language, 'onboarding.stepCuisines'),
+    t(language, 'onboarding.stepStyles'), t(language, 'onboarding.stepServings'),
+  ];
 
   const addChild = () => setChildren((c) => [...c, { id: crypto.randomUUID(), age: 6 }]);
   const removeChild = (id: string) => setChildren((c) => c.filter((x) => x.id !== id));
@@ -53,7 +60,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col">
       <div className="px-5 pt-8 pb-4 flex items-center justify-between">
         {step > 0 ? (
-          <button onClick={back} className="text-emerald-700 font-semibold text-sm">← Back</button>
+          <button onClick={back} className="text-emerald-700 font-semibold text-sm">{t(language, 'onboarding.back')}</button>
         ) : (
           <span />
         )}
@@ -64,22 +71,44 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       <div className="flex-1 px-5 overflow-y-auto pb-28">
         {step === 0 && (
           <div>
-            <Header emoji="🏡" title="Tell us about your household" subtitle="This helps us plan the right amount of food." />
+            <Header emoji="🌐" title={t(language, 'onboarding.languageTitle')} subtitle={t(language, 'onboarding.languageSubtitle')} />
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setLanguage('en')}
+                className={`rounded-2xl p-5 text-center border-2 transition-colors ${language === 'en' ? 'border-emerald-600 bg-emerald-50' : 'border-gray-100 bg-white'}`}
+              >
+                <div className="text-3xl mb-2">🇬🇧</div>
+                <div className="font-bold text-gray-900">English</div>
+              </button>
+              <button
+                onClick={() => setLanguage('it')}
+                className={`rounded-2xl p-5 text-center border-2 transition-colors ${language === 'it' ? 'border-emerald-600 bg-emerald-50' : 'border-gray-100 bg-white'}`}
+              >
+                <div className="text-3xl mb-2">🇮🇹</div>
+                <div className="font-bold text-gray-900">Italiano</div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div>
+            <Header emoji="🏡" title={t(language, 'onboarding.householdTitle')} subtitle={t(language, 'onboarding.householdSubtitle')} />
             <div className="bg-white rounded-2xl p-4 border border-gray-100 mb-4">
-              <Stepper label="Adults" value={adults} onChange={setAdults} min={1} max={10} />
+              <Stepper label={t(language, 'onboarding.adults')} value={adults} onChange={setAdults} min={1} max={10} />
             </div>
             <div className="bg-white rounded-2xl p-4 border border-gray-100">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-700">Children</span>
-                <button onClick={addChild} className="text-sm font-bold text-emerald-600">+ Add child</button>
+                <span className="text-sm font-medium text-gray-700">{t(language, 'onboarding.children')}</span>
+                <button onClick={addChild} className="text-sm font-bold text-emerald-600">{t(language, 'onboarding.addChild')}</button>
               </div>
-              {children.length === 0 && <p className="text-xs text-gray-400">No children added.</p>}
+              {children.length === 0 && <p className="text-xs text-gray-400">{t(language, 'onboarding.noChildren')}</p>}
               <div className="space-y-2">
                 {children.map((c, i) => (
                   <div key={c.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
-                    <span className="text-sm text-gray-600">Child {i + 1}</span>
+                    <span className="text-sm text-gray-600">{t(language, 'onboarding.child')} {i + 1}</span>
                     <div className="flex items-center gap-3">
-                      <Stepper value={c.age} onChange={(v) => setChildAge(c.id, v)} min={0} max={18} label="age" />
+                      <Stepper value={c.age} onChange={(v) => setChildAge(c.id, v)} min={0} max={18} label={t(language, 'onboarding.age')} />
                       <button onClick={() => removeChild(c.id)} className="text-gray-400 text-sm">✕</button>
                     </div>
                   </div>
@@ -89,27 +118,27 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </div>
         )}
 
-        {step === 1 && (
+        {step === 2 && (
           <div>
-            <Header emoji="🥗" title="Dietary preferences" subtitle="Select any that apply. You can change these anytime." />
+            <Header emoji="🥗" title={t(language, 'onboarding.dietTitle')} subtitle={t(language, 'onboarding.dietSubtitle')} />
             <div className="flex flex-wrap gap-2">
               {DIET_OPTIONS.map((d) => (
-                <Chip key={d.id} label={d.label} emoji={d.emoji} selected={diets.includes(d.id)} onClick={() => toggleDiet(d.id)} />
+                <Chip key={d.id} label={dietLabel(d.id, language)} emoji={d.emoji} selected={diets.includes(d.id)} onClick={() => toggleDiet(d.id)} />
               ))}
             </div>
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div>
-            <Header emoji="⚠️" title="Any allergies?" subtitle="We'll make sure meal suggestions avoid these." />
+            <Header emoji="⚠️" title={t(language, 'onboarding.allergiesTitle')} subtitle={t(language, 'onboarding.allergiesSubtitle')} />
             <div className="flex flex-wrap gap-2 mb-4">
               {COMMON_ALLERGIES.map((a) => (
-                <Chip key={a} label={a} selected={allergies.includes(a)} onClick={() => setAllergies(toggle(allergies, a))} />
+                <Chip key={a} label={allergyLabel(a, language)} selected={allergies.includes(a)} onClick={() => setAllergies(toggle(allergies, a))} />
               ))}
             </div>
             <CustomAdder
-              placeholder="Add another allergy..."
+              placeholder={t(language, 'onboarding.addAllergy')}
               value={customAllergy}
               onChange={setCustomAllergy}
               onAdd={() => {
@@ -127,11 +156,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div>
-            <Header emoji="🙅" title="Foods you'd rather avoid" subtitle="We won't suggest meals with these ingredients." />
+            <Header emoji="🙅" title={t(language, 'onboarding.dislikesTitle')} subtitle={t(language, 'onboarding.dislikesSubtitle')} />
             <CustomAdder
-              placeholder="e.g. mushrooms, olives..."
+              placeholder={t(language, 'onboarding.dislikesPlaceholder')}
               value={customDislike}
               onChange={setCustomDislike}
               onAdd={() => {
@@ -144,27 +173,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 <Chip key={d} label={d} selected onClick={() => setDislikes(toggle(dislikes, d))} />
               ))}
             </div>
-            {dislikes.length === 0 && <p className="text-xs text-gray-400 mt-3">No disliked ingredients added yet.</p>}
-          </div>
-        )}
-
-        {step === 4 && (
-          <div>
-            <Header emoji="🌍" title="Favourite cuisines" subtitle="Pick as many as you like — we'll prioritise these." />
-            <div className="flex flex-wrap gap-2">
-              {CUISINE_OPTIONS.map((c) => (
-                <Chip key={c.id} label={c.id} emoji={c.emoji} selected={cuisines.includes(c.id)} onClick={() => setCuisines(toggle(cuisines, c.id))} />
-              ))}
-            </div>
+            {dislikes.length === 0 && <p className="text-xs text-gray-400 mt-3">{t(language, 'onboarding.noDislikes')}</p>}
           </div>
         )}
 
         {step === 5 && (
           <div>
-            <Header emoji="🍽️" title="Preferred meal styles" subtitle="We'll lean towards these when suggesting meals." />
+            <Header emoji="🌍" title={t(language, 'onboarding.cuisinesTitle')} subtitle={t(language, 'onboarding.cuisinesSubtitle')} />
             <div className="flex flex-wrap gap-2">
-              {MEAL_STYLE_OPTIONS.map((m) => (
-                <Chip key={m.id} label={m.id} emoji={m.emoji} selected={mealStyles.includes(m.id)} onClick={() => setMealStyles(toggle(mealStyles, m.id))} />
+              {CUISINE_OPTIONS.map((c) => (
+                <Chip key={c.id} label={cuisineLabel(c.id, language)} emoji={c.emoji} selected={cuisines.includes(c.id)} onClick={() => setCuisines(toggle(cuisines, c.id))} />
               ))}
             </div>
           </div>
@@ -172,9 +190,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
         {step === 6 && (
           <div>
-            <Header emoji="🍴" title="Typical serving size" subtitle="How many people usually eat a meal together? You can adjust this per meal later." />
+            <Header emoji="🍽️" title={t(language, 'onboarding.stylesTitle')} subtitle={t(language, 'onboarding.stylesSubtitle')} />
+            <div className="flex flex-wrap gap-2">
+              {MEAL_STYLE_OPTIONS.map((m) => (
+                <Chip key={m.id} label={mealStyleLabel(m.id, language)} emoji={m.emoji} selected={mealStyles.includes(m.id)} onClick={() => setMealStyles(toggle(mealStyles, m.id))} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === 7 && (
+          <div>
+            <Header emoji="🍴" title={t(language, 'onboarding.servingsTitle')} subtitle={t(language, 'onboarding.servingsSubtitle')} />
             <div className="bg-white rounded-2xl p-4 border border-gray-100">
-              <Stepper label="People per meal" value={defaultServings} onChange={setDefaultServings} min={1} max={12} />
+              <Stepper label={t(language, 'onboarding.peoplePerMeal')} value={defaultServings} onChange={setDefaultServings} min={1} max={12} />
             </div>
           </div>
         )}
@@ -184,11 +213,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         <div className="max-w-lg mx-auto">
           {step < STEPS.length - 1 ? (
             <button onClick={next} className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl shadow-sm">
-              Continue
+              {t(language, 'onboarding.continue')}
             </button>
           ) : (
             <button onClick={finish} className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl shadow-sm">
-              Start planning 🎉
+              {t(language, 'onboarding.finish')}
             </button>
           )}
         </div>

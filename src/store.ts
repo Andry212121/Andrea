@@ -12,6 +12,7 @@ import {
 } from './utils/mealGenerator';
 import { generateSchoolWeek, generateWorkWeek, generateSchoolLunch, generateWorkLunch } from './utils/lunchGenerator';
 import { buildAutoShoppingItems } from './utils/shoppingList';
+import { t, type Lang, type StringKey } from './i18n';
 
 function useLocalStorage<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
@@ -69,6 +70,7 @@ export function useAppStore() {
   const [schoolLunches, setSchoolLunches] = useLocalStorage<PackedLunch[]>('pp_school_lunches', []);
   const [workLunches, setWorkLunches] = useLocalStorage<PackedLunch[]>('pp_work_lunches', []);
   const [shoppingItems, setShoppingItems] = useLocalStorage<ShoppingItem[]>('pp_shopping', []);
+  const [language, setLanguage] = useLocalStorage<Lang>('pp_language', 'en');
 
   // Roll over to a fresh (empty) week automatically once Monday passes.
   // Intentionally runs once on mount only — this is a startup check, not a live sync.
@@ -308,7 +310,10 @@ export function useAppStore() {
     setShoppingItems((prev) => prev.filter((i) => !i.checked));
   };
 
+  const tt = (key: StringKey, vars?: Record<string, string | number>) => t(language, key, vars);
+
   return {
+    language, setLanguage, t: tt,
     prefs, setPrefs, completeOnboarding,
     pantry, pantryByIngredient, toggleCatalogItem, addCustomItem, updatePantryItem, removePantryItem,
     expiringItems, expiringIngredientIds,

@@ -16,7 +16,13 @@ export default function App() {
   const store = useAppStore();
 
   if (!store.prefs.onboarded) {
-    return <Onboarding onComplete={store.completeOnboarding} />;
+    return (
+      <Onboarding
+        onComplete={store.completeOnboarding}
+        language={store.language}
+        setLanguage={store.setLanguage}
+      />
+    );
   }
 
   const uncheckedShopping = store.shoppingItems.filter((i) => !i.checked).length;
@@ -30,7 +36,7 @@ export default function App() {
       {page === 'shopping' && <Shopping store={store} />}
       {page === 'settings' && <Settings store={store} onNavigate={setPage} />}
 
-      <Nav current={page} onNavigate={setPage} shoppingCount={uncheckedShopping} />
+      <Nav current={page} onNavigate={setPage} shoppingCount={uncheckedShopping} lang={store.language} />
     </div>
   );
 }

@@ -3,9 +3,9 @@ import type { AppStore } from '../store';
 import { slotKey, MEAL_TYPES } from '../store';
 import type { Page } from '../types';
 import { RECIPES_BY_ID } from '../data/recipes';
-import { MEAL_TYPE_META } from '../data/options';
 import { computeAvailability, generateMealOptions, matchRecipe, type GenContext } from '../utils/mealGenerator';
 import { daysUntil } from '../utils/date';
+import { t, mealTypeLabel, recipeName, foodName } from '../i18n';
 import RecipeMedia from '../components/RecipeMedia';
 import Sheet from '../components/Sheet';
 import RecipeDetail from '../components/RecipeDetail';
@@ -18,6 +18,7 @@ interface HomeProps {
 
 export default function Home({ store, onNavigate }: HomeProps) {
   const [viewingRecipeId, setViewingRecipeId] = useState<string | null>(null);
+  const lang = store.language;
 
   const todaySlots = MEAL_TYPES.filter((t) => store.activeMealTypes.includes(t))
     .map((t) => ({ type: t, slot: store.weekPlan.slots[slotKey(store.todayDay, t)] }))
@@ -47,8 +48,8 @@ export default function Home({ store, onNavigate }: HomeProps) {
     <div className="pb-28">
       <div className="px-5 pt-8 pb-3 flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-gray-400 font-medium">Hey there 👋</p>
-          <h1 className="text-2xl font-extrabold text-gray-900">What's cooking today?</h1>
+          <p className="text-sm text-gray-400 font-medium">{t(lang, 'home.greeting')}</p>
+          <h1 className="text-2xl font-extrabold text-gray-900">{t(lang, 'home.headline')}</h1>
         </div>
         <button
           onClick={() => onNavigate('settings')}
@@ -61,25 +62,25 @@ export default function Home({ store, onNavigate }: HomeProps) {
 
       {store.expiringItems.length > 0 && (
         <div className="mx-5 mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <div className="font-bold text-amber-800 text-sm">⏳ {store.expiringItems.length} ingredient{store.expiringItems.length === 1 ? '' : 's'} should be used soon</div>
+          <div className="font-bold text-amber-800 text-sm">⏳ {store.expiringItems.length} {t(lang, 'home.expiringSoon')}</div>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {store.expiringItems.slice(0, 6).map((i) => (
               <span key={i.id} className="text-xs bg-white border border-amber-200 text-amber-700 rounded-full px-2.5 py-1 font-medium">
-                {i.emoji} {i.name}{i.expiry ? ` · ${Math.max(0, daysUntil(i.expiry))}d` : ''}
+                {i.emoji} {foodName(i.name, lang)}{i.expiry ? ` · ${Math.max(0, daysUntil(i.expiry))}g` : ''}
               </span>
             ))}
           </div>
           <button onClick={() => onNavigate('mealplan')} className="text-xs font-bold text-amber-700 mt-2 underline">
-            Use them in a meal →
+            {t(lang, 'home.useInMeal')}
           </button>
         </div>
       )}
 
       {/* This week */}
-      <SectionCard title="This week" emoji="📅" onPress={() => onNavigate('mealplan')}>
-        <p className="text-xs text-gray-500 mb-2">{weekMealsPlanned} of {weekMealsTotal} planned meals chosen</p>
+      <SectionCard title={t(lang, 'home.thisWeek')} emoji="📅" onPress={() => onNavigate('mealplan')} viewAllLabel={t(lang, 'home.viewAll')}>
+        <p className="text-xs text-gray-500 mb-2">{t(lang, 'home.plannedMealsChosen', { count: weekMealsPlanned, total: weekMealsTotal })}</p>
         {todaySlots.length === 0 ? (
-          <p className="text-sm text-gray-400">No meals planned for today yet.</p>
+          <p className="text-sm text-gray-400">{t(lang, 'home.noMealsToday')}</p>
         ) : (
           <div className="space-y-2">
             {todaySlots.map(({ type, slot }) => {
@@ -89,8 +90,8 @@ export default function Home({ store, onNavigate }: HomeProps) {
                 <div key={type} className="flex items-center gap-2.5">
                   <RecipeMedia emoji={recipe.emoji} gradient={recipe.gradient} size="sm" className="w-10 h-10" />
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase">{MEAL_TYPE_META[type].label}</div>
-                    <div className="text-sm font-bold text-gray-800 truncate">{recipe.name}</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">{mealTypeLabel(type, lang)}</div>
+                    <div className="text-sm font-bold text-gray-800 truncate">{recipeName(recipe, lang)}</div>
                   </div>
                 </div>
               );
@@ -100,16 +101,16 @@ export default function Home({ store, onNavigate }: HomeProps) {
       </SectionCard>
 
       {/* What can I cook */}
-      <SectionCard title="What can I cook?" emoji="🍳" subtitle="Using what's already in your kitchen">
+      <SectionCard title={t(lang, 'home.whatCanICook')} emoji="🍳" subtitle={t(lang, 'home.usingWhatYouHave')}>
         {whatCanICook.length === 0 ? (
-          <EmptyState emoji="🥫" title="Add some ingredients" subtitle="Tick off what you have in My Food to get instant suggestions." />
+          <EmptyState emoji="🥫" title={t(lang, 'home.addIngredients')} subtitle={t(lang, 'home.addIngredientsSub')} />
         ) : (
           <div className="flex gap-3 overflow-x-auto -mx-1 px-1 pb-1">
             {whatCanICook.map((opt) => (
               <button key={opt.recipe.id} onClick={() => setViewingRecipeId(opt.recipe.id)} className="shrink-0 w-32 text-left">
                 <RecipeMedia emoji={opt.recipe.emoji} gradient={opt.recipe.gradient} size="md" className="w-32 h-24" />
-                <div className="text-xs font-bold text-gray-800 mt-1.5 leading-tight">{opt.recipe.name}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">✓ {opt.match.have.length}/{opt.recipe.ingredients.length} have</div>
+                <div className="text-xs font-bold text-gray-800 mt-1.5 leading-tight">{recipeName(opt.recipe, lang)}</div>
+                <div className="text-[10px] text-gray-400 mt-0.5">✓ {opt.match.have.length}/{opt.recipe.ingredients.length} {t(lang, 'home.have')}</div>
               </button>
             ))}
           </div>
@@ -118,18 +119,19 @@ export default function Home({ store, onNavigate }: HomeProps) {
 
       {/* Quick links */}
       <div className="px-5 grid grid-cols-2 gap-3 mt-1">
-        <QuickTile emoji="🥫" title="My Food" subtitle={`${pantryHaveCount} items`} onPress={() => onNavigate('myfood')} />
-        <QuickTile emoji="🍱" title="Pack Lunch" subtitle={`${store.schoolLunches.length + store.workLunches.length} planned`} onPress={() => onNavigate('packlunch')} />
-        <QuickTile emoji="🛒" title="Shopping List" subtitle={`${uncheckedShopping} items needed`} onPress={() => onNavigate('shopping')} />
-        <QuickTile emoji="📅" title="Meal Plan" subtitle={`${weekMealsPlanned} meals set`} onPress={() => onNavigate('mealplan')} />
+        <QuickTile emoji="🥫" title={t(lang, 'home.myFood')} subtitle={`${pantryHaveCount} ${t(lang, 'home.items')}`} onPress={() => onNavigate('myfood')} />
+        <QuickTile emoji="🍱" title={t(lang, 'home.packLunch')} subtitle={`${store.schoolLunches.length + store.workLunches.length} ${t(lang, 'home.planned')}`} onPress={() => onNavigate('packlunch')} />
+        <QuickTile emoji="🛒" title={t(lang, 'home.shoppingList')} subtitle={`${uncheckedShopping} ${t(lang, 'home.itemsNeeded')}`} onPress={() => onNavigate('shopping')} />
+        <QuickTile emoji="📅" title={t(lang, 'home.mealPlan')} subtitle={`${weekMealsPlanned} ${t(lang, 'home.mealsSet')}`} onPress={() => onNavigate('mealplan')} />
       </div>
 
-      <Sheet open={!!viewingRecipe} onClose={() => setViewingRecipeId(null)} title="Recipe">
+      <Sheet open={!!viewingRecipe} onClose={() => setViewingRecipeId(null)} title={t(lang, 'mealplan.recipe')}>
         {viewingRecipe && (
           <RecipeDetail
             recipe={viewingRecipe}
             servings={servingsForView}
             match={matchRecipe(viewingRecipe, servingsForView, availability)}
+            lang={lang}
             footer={
               <button
                 onClick={() => {
@@ -139,7 +141,7 @@ export default function Home({ store, onNavigate }: HomeProps) {
                 }}
                 className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-2xl"
               >
-                Add to today's dinner
+                {t(lang, 'home.addToTodaysDinner')}
               </button>
             }
           />
@@ -149,7 +151,7 @@ export default function Home({ store, onNavigate }: HomeProps) {
   );
 }
 
-function SectionCard({ title, emoji, subtitle, onPress, children }: { title: string; emoji: string; subtitle?: string; onPress?: () => void; children: ReactNode }) {
+function SectionCard({ title, emoji, subtitle, onPress, viewAllLabel, children }: { title: string; emoji: string; subtitle?: string; onPress?: () => void; viewAllLabel?: string; children: ReactNode }) {
   return (
     <div className="mx-5 mb-4 bg-white rounded-2xl border border-gray-100 p-4">
       <div className="flex items-center justify-between mb-1">
@@ -159,7 +161,7 @@ function SectionCard({ title, emoji, subtitle, onPress, children }: { title: str
         </div>
         {onPress && (
           <button onClick={onPress} className="text-xs font-bold text-emerald-600">
-            View all →
+            {viewAllLabel}
           </button>
         )}
       </div>

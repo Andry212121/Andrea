@@ -1,24 +1,26 @@
 import type { Page } from '../types';
+import { t, type Lang } from '../i18n';
 
 interface NavProps {
   current: Page;
   onNavigate: (p: Page) => void;
   shoppingCount: number;
+  lang: Lang;
 }
 
-const items: { page: Page; label: string; emoji: string }[] = [
-  { page: 'home', label: 'Home', emoji: '🏠' },
-  { page: 'mealplan', label: 'Meal Plan', emoji: '📅' },
-  { page: 'myfood', label: 'My Food', emoji: '🥫' },
-  { page: 'packlunch', label: 'Pack Lunch', emoji: '🍱' },
-  { page: 'shopping', label: 'Shopping', emoji: '🛒' },
+const items: { page: Page; key: 'nav.home' | 'nav.mealplan' | 'nav.myfood' | 'nav.packlunch' | 'nav.shopping'; emoji: string }[] = [
+  { page: 'home', key: 'nav.home', emoji: '🏠' },
+  { page: 'mealplan', key: 'nav.mealplan', emoji: '📅' },
+  { page: 'myfood', key: 'nav.myfood', emoji: '🥫' },
+  { page: 'packlunch', key: 'nav.packlunch', emoji: '🍱' },
+  { page: 'shopping', key: 'nav.shopping', emoji: '🛒' },
 ];
 
-export default function Nav({ current, onNavigate, shoppingCount }: NavProps) {
+export default function Nav({ current, onNavigate, shoppingCount, lang }: NavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-emerald-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] z-40 safe-bottom">
       <div className="flex justify-around items-stretch max-w-lg mx-auto">
-        {items.map(({ page, label, emoji }) => (
+        {items.map(({ page, key, emoji }) => (
           <button
             key={page}
             onClick={() => onNavigate(page)}
@@ -34,7 +36,7 @@ export default function Nav({ current, onNavigate, shoppingCount }: NavProps) {
                 </span>
               )}
             </span>
-            <span className="text-[11px] font-semibold">{label}</span>
+            <span className="text-[11px] font-semibold">{t(lang, key)}</span>
             {current === page && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-emerald-500" />}
           </button>
         ))}
