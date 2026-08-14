@@ -1,8 +1,10 @@
 {
-  "name": "andrea",
-  "private": true,
-  "version": "0.0.0",
+  "name": "pantrypal",
+  "description": "PantryPal — a smart pantry & meal planning app that plans meals around the food you already have at home. React 19 + TypeScript + Vite + Tailwind v4 PWA template.",
+  "private": false,
+  "version": "1.0.0",
   "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -11,8 +13,7 @@
   },
   "dependencies": {
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "recharts": "^3.9.0"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.1",
